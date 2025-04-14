@@ -1,4 +1,8 @@
 import streamlit as st
+
+# ---- Configuración de la Página ----------
+st.set_page_config(page_title="Curriculum Vitae", layout="wide")
+
 from datetime import datetime
 from google.api_core import retry
 from dotenv import load_dotenv
@@ -6,9 +10,6 @@ from generate_word import generate_cv  # Importar la función para generar el CV
 import os
 import google.generativeai as genai
 import tempfile
-
-# ---- Configuración de la Página ----------
-st.set_page_config(page_title="Curriculum Vitae", layout="wide")
 
 # --- Barra Lateral del Comienzo 
 st.image("Header.jpg", use_container_width=True)
@@ -169,6 +170,13 @@ section_titles = {
         "Português": "Experiência Acadêmica",
         "Deutsch": "Akademische Erfahrung"
     },
+    "Información Adicional": {  # Nueva sección
+        "Español": "Información Adicional",
+        "English": "Additional Information",
+        "Français": "Informations Supplémentaires",
+        "Português": "Informações Adicionais",
+        "Deutsch": "Zusätzliche Informationen"
+    },
     "Idiomas": {
         "Español": "Idiomas",
         "English": "Languages",
@@ -183,6 +191,7 @@ section_files = {
     "Perfil Profesional": "markdown/perfil_profesional.md",
     "Experiencia Profesional": "markdown/experiencia_profesional.md",
     "Experiencia Académica": "markdown/experiencia_academica.md",
+    "Información Adicional": "markdown/informacion_adicional.md",  # Nueva sección
     "Idiomas": "markdown/idiomas.md"
 }
 
@@ -199,7 +208,6 @@ seccion = next(key for key, value in section_titles.items() if value[idioma] == 
 st.header(section_titles[seccion][idioma])
 
 if seccion == "Idiomas":
-
     # Mostrar contenido alternativo directamente en el código
     st.markdown("### Español: Nativo")
     st.progress(100)  # Español: Nativo
@@ -244,14 +252,14 @@ download_texts = {
         "Español": "El archivo Word no se generó correctamente.",
         "English": "The Word file was not generated correctly.",
         "Français": "Le fichier Word n'a pas été généré correctement.",
-        "Português": "O arquivo Word não foi gerado corretamente.",
+        "Português": "O arquivo Word não foi gerado correctamente.",
         "Deutsch": "Die Word-Datei wurde nicht korrekt generiert."
     },
     "pdf_error": {
         "Español": "El archivo PDF no se generó correctamente.",
         "English": "The PDF file was not generated correctly.",
         "Français": "Le fichier PDF n'a pas été généré correctement.",
-        "Português": "O arquivo PDF não foi gerado corretamente.",
+        "Português": "O arquivo PDF não foi gerado correctamente.",
         "Deutsch": "Die PDF-Datei wurde nicht korrekt generiert."
     }
 }
