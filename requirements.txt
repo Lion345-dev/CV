@@ -1,7 +1,7 @@
 streamlit
 python-dotenv
 google-generativeai
-docx
+python-docx
 docx2pdf
 beautifulsoup4
 requests

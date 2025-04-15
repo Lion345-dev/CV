@@ -11,7 +11,7 @@ from google.generativeai import GenerativeModel
 # If list_models is not found, double-check the documentation for its current location
 
 import tempfile
-from docx import Document
+from docx import Document  # Corrected import statement
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from descarga_CV import descargar_archivo, convert_to_pdf  # Importar la función desde descarga_CV
@@ -62,6 +62,7 @@ def configure_genai():
 # Función para traducir texto con manejo de errores y caché
 @st.cache_data
 def traducir_texto(texto, idioma_destino):
+    st.write("Translating...")  # Add this line to check if the function is called
     try:
         if not configure_genai():
             return texto
