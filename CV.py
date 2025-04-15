@@ -40,18 +40,15 @@ def calcular_edad(anio_nacimiento):
 edad = calcular_edad(anio_nacimiento)
 
 # Configuración de la API de Gemini con manejo de errores
-load_dotenv()
-
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
 @st.cache_resource
 def configure_genai():
     try:
         if not GOOGLE_API_KEY:
-            raise ValueError("API key not found in environment variables")
+            raise ValueError("API key not found in secrets")
 
         genai.configure(api_key=GOOGLE_API_KEY)
-
         return True
     except Exception as e:
         st.error(f"Error configuring API: {str(e)}")
