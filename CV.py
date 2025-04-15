@@ -194,12 +194,19 @@ seccion = next(key for key, value in section_titles.items() if value[idioma] == 
 st.header(section_titles[seccion][idioma])
 
 if seccion == "Idiomas":
-    # Mostrar contenido alternativo directamente en el código
-    st.markdown("### Español: Nativo")
-    st.progress(100)  # Español: Nativo
+    # Mostrar contenido alternativo según el idioma seleccionado
+    if idioma == "English":
+        st.markdown("### Spanish: Native")
+        st.progress(100)  # Spanish: Native
 
-    st.markdown("### Inglés: Avanzado (C1)")
-    st.progress(70)  # Inglés: Avanzado (C1)
+        st.markdown("### English: Advanced (C1)")
+        st.progress(70)  # English: Advanced (C1)
+    else:
+        st.markdown("### Español: Nativo")
+        st.progress(100)  # Español: Nativo
+
+        st.markdown("### Inglés: Avanzado (C1)")
+        st.progress(70)  # Inglés: Avanzado (C1)
 else:
     # Cargar y mostrar el contenido del archivo Markdown para otras secciones
     contenido = cargar_markdown(section_files[seccion])
