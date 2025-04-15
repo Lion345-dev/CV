@@ -221,10 +221,10 @@ download_texts = {
 }
 
 # Rutas y nombres de los archivos a descargar
-ruta_archivo_word_es = r"C:\Users\luisy\Laboral\CV\CV_LYCG_Español.docx"
-ruta_archivo_word_en = r"C:\Users\luisy\Laboral\CV\CV_LYCG_English.docx"
-ruta_archivo_pdf_es = r"C:\Users\luisy\Laboral\CV\CV_LYCG_Español.pdf"
-ruta_archivo_pdf_en = r"C:\Users\luisy\Laboral\CV\CV_LYCG_English.pdf"  # Ruta para el PDF en inglés
+ruta_archivo_word_es = "CV_LYCG_Español.docx"
+ruta_archivo_word_en = "CV_LYCG_English.docx"
+ruta_archivo_pdf_es = "CV_LYCG_Español.pdf"
+ruta_archivo_pdf_en = "CV_LYCG_English.pdf"
 
 # Traducción del currículum
 @st.cache_data
