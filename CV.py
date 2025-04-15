@@ -1,17 +1,25 @@
 import streamlit as st
+from datetime import datetime
+from dotenv import load_dotenv
+import os
+import google.generativeai as genai
+
+# If GenerativeModel is still not found, try:
+from google.generativeai import GenerativeModel
+
+# If configure is not found, it might be implicitly available after the main import
+# If list_models is not found, double-check the documentation for its current location
+
+import tempfile
+from docx import Document
+from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from descarga_CV import descargar_archivo, convert_to_pdf  # Importar la función desde descarga_CV
 
 # ---- Configuración de la Página ----------
 st.set_page_config(page_title="Curriculum Vitae", layout="wide")
 
-from datetime import datetime
-from google.api_core import retry
-from dotenv import load_dotenv
-from generate_word import generate_cv  # Importar la función para generar el CV
-import os
-import google.generativeai as genai
-import tempfile
-
-# --- Barra Lateral del Comienzo 
+# --- Barra Lateral del Comienzo
 st.image("Header.jpg", use_container_width=True)
 
 #### --- Función para calcular la edad #####
@@ -20,36 +28,33 @@ anio_nacimiento = datetime(2002, 6, 29)
 def calcular_edad(anio_nacimiento):
     fecha_actual = datetime.now()
     edad = fecha_actual.year - anio_nacimiento.year
-    
+
     # Ajustar la edad si aún no ha llegado el mes de cumpleaños
     if fecha_actual.month < anio_nacimiento.month:
         edad -= 1
     elif fecha_actual.month == anio_nacimiento.month and fecha_actual.day < anio_nacimiento.day:
         edad -= 1
-        
+
     return edad
 
 edad = calcular_edad(anio_nacimiento)
 
 # Configuración de la API de Gemini con manejo de errores
-@st.cache_data
+load_dotenv()
+
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
+@st.cache_resource
 def configure_genai():
     try:
-        # Check if running on Streamlit Cloud or locally
-        if 'GOOGLE_API_KEY' in st.secrets:
-            GOOGLE_API_KEY = st.secrets['GOOGLE_API_KEY']
-        else:
-            # Fallback for local development
-            load_dotenv()
-            GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
-        
         if not GOOGLE_API_KEY:
-            raise ValueError("API key not found in secrets or environment variables")
-            
+            raise ValueError("API key not found in environment variables")
+
         genai.configure(api_key=GOOGLE_API_KEY)
+
         return True
     except Exception as e:
-        st.error(f"Error configurando API: {str(e)}")
+        st.error(f"Error configuring API: {str(e)}")
         return False
 
 ################
@@ -60,7 +65,7 @@ def traducir_texto(texto, idioma_destino):
     try:
         if not configure_genai():
             return texto
-        
+
         prompt = f"""
         Traduce el siguiente contenido al {idioma_destino}.
         Importante:
@@ -71,55 +76,49 @@ def traducir_texto(texto, idioma_destino):
         - Conserva los títulos con # y ##
         - No modifiques fechas ni números
         - Mantén los nombres propios sin cambios
+        - Conserva el formato original del currículum
 
-        Contenido a traducir:
+        Currículum a traducir:
         {texto}
         """
-        
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        st.warning(f"Error en traducción, mostrando texto original: {str(e)}")
-        return texto
 
-# Navigation bar 
+        try:
+            model = genai.GenerativeModel("gemini-2.0-flash")  # or a model from the list
+            response = model.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            st.error(f"Error generating content: {e}. Model may not be available.")
+            return ""
+
+    except Exception as e:
+        st.error(f"Error in traducir_texto: {e}")
+        return ""
+
+# Navigation bar
 # Diccionario para traducir los textos de la barra lateral
 sidebar_texts = {
     "title": {
         "Español": "Curriculum Vitae",
-        "English": "Curriculum Vitae",
-        "Français": "Curriculum Vitae",
-        "Português": "Currículo",
-        "Deutsch": "Lebenslauf"
+        "English": "Curriculum Vitae"
     },
     "header": {
         "Español": "Lic. Luis Yael Carmona Gutiérrez",
-        "English": "Lic. Luis Yael Carmona Gutiérrez",
-        "Français": "Lic. Luis Yael Carmona Gutiérrez",
-        "Português": "Lic. Luis Yael Carmona Gutiérrez",
-        "Deutsch": "Lic. Luis Yael Carmona Gutiérrez"
+        "English": "Lic. Luis Yael Carmona Gutiérrez"
     },
     "age": {
         "Español": f"Edad: {edad} años",
-        "English": f"Age: {edad} years",
-        "Français": f"Âge: {edad} ans",
-        "Português": f"Idade: {edad} anos",
-        "Deutsch": f"Alter: {edad} Jahre"
+        "English": f"Age: {edad} years"
     },
     "sections": {
         "Español": "Secciones",
-        "English": "Sections",
-        "Français": "Sections",
-        "Português": "Seções",
-        "Deutsch": "Abschnitte"
+        "English": "Sections"
     }
 }
 
-# Update the language selector to include more options
+# Update the language selector to include only English and Spanish
 idioma = st.sidebar.selectbox(
-    "Language / Idioma", 
-    ["Español", "English", "Français", "Português", "Deutsch"]
+    "Language / Idioma",
+    ["Español", "English"]
 )
 
 # Actualizar la barra lateral según el idioma seleccionado
@@ -145,44 +144,25 @@ def cargar_markdown(archivo):
     except FileNotFoundError:
         return f"Error: No se encontró el archivo {archivo}"
 
-# --- Navegación  del App 
+# --- Navegación  del App
 
 # Dictionary for section titles in all languages
 section_titles = {
     "Perfil Profesional": {
         "Español": "Datos de Contacto",
-        "English": "Contact Information",
-        "Français": "Informations de Contact",
-        "Português": "Informações de Contato",
-        "Deutsch": "Kontaktinformationen"
+        "English": "Contact Information"
     },
     "Experiencia Profesional": {
         "Español": "Experiencia Profesional",
-        "English": "Professional Experience",
-        "Français": "Expérience Professionnelle",
-        "Português": "Experiência Profissional",
-        "Deutsch": "Berufserfahrung"
+        "English": "Academic Experience"
     },
-    "Experiencia Académica": {
-        "Español": "Experiencia Académica",
-        "English": "Academic Experience",
-        "Français": "Expérience Académique",
-        "Português": "Experiência Acadêmica",
-        "Deutsch": "Akademische Erfahrung"
-    },
-    "Información Adicional": {  # Nueva sección
+    "Información Adicional": {
         "Español": "Información Adicional",
-        "English": "Additional Information",
-        "Français": "Informations Supplémentaires",
-        "Português": "Informações Adicionais",
-        "Deutsch": "Zusätzliche Informationen"
+        "English": "Additional Information"
     },
     "Idiomas": {
         "Español": "Idiomas",
-        "English": "Languages",
-        "Français": "Langues",
-        "Português": "Idiomas",
-        "Deutsch": "Sprachen"
+        "English": "Languages"
     }
 }
 
@@ -191,7 +171,7 @@ section_files = {
     "Perfil Profesional": "markdown/perfil_profesional.md",
     "Experiencia Profesional": "markdown/experiencia_profesional.md",
     "Experiencia Académica": "markdown/experiencia_academica.md",
-    "Información Adicional": "markdown/informacion_adicional.md",  # Nueva sección
+    "Información Adicional": "markdown/informacion_adicional.md",
     "Idiomas": "markdown/idiomas.md"
 }
 
@@ -214,12 +194,6 @@ if seccion == "Idiomas":
 
     st.markdown("### Inglés: Avanzado (C1)")
     st.progress(70)  # Inglés: Avanzado (C1)
-
-    st.markdown("### Francés: Intermedio (B1)")
-    st.progress(50)  # Francés: Intermedio (B1)
-
-    st.markdown("### Alemán: Básico (A2)")
-    st.progress(30)  # Alemán: Básico (A2)
 else:
     # Cargar y mostrar el contenido del archivo Markdown para otras secciones
     contenido = cargar_markdown(section_files[seccion])
@@ -229,103 +203,113 @@ else:
 download_texts = {
     "download_section": {
         "Español": "Descargar Currículum",
-        "English": "Download Resume",
-        "Français": "Télécharger le CV",
-        "Português": "Baixar Currículo",
-        "Deutsch": "Lebenslauf herunterladen"
+        "English": "Download Resume"
     },
-    "generate_word": {
-        "Español": "Generar Word",
-        "English": "Generate Word",
-        "Français": "Générer Word",
-        "Português": "Gerar Word",
-        "Deutsch": "Word generieren"
+    "download_word": {
+        "Español": "Descargar Word",
+        "English": "Download Word"
     },
-    "generate_pdf": {
-        "Español": "Generar PDF",
-        "English": "Generate PDF",
-        "Français": "Générer PDF",
-        "Português": "Gerar PDF",
-        "Deutsch": "PDF generieren"
+    "download_pdf": {
+        "Español": "Descargar PDF",
+        "English": "Download PDF"
     },
-    "word_error": {
-        "Español": "El archivo Word no se generó correctamente.",
-        "English": "The Word file was not generated correctly.",
-        "Français": "Le fichier Word n'a pas été généré correctement.",
-        "Português": "O arquivo Word não foi gerado correctamente.",
-        "Deutsch": "Die Word-Datei wurde nicht korrekt generiert."
-    },
-    "pdf_error": {
-        "Español": "El archivo PDF no se generó correctamente.",
-        "English": "The PDF file was not generated correctly.",
-        "Français": "Le fichier PDF n'a pas été généré correctement.",
-        "Português": "O arquivo PDF não foi gerado correctamente.",
-        "Deutsch": "Die PDF-Datei wurde nicht korrekt generiert."
+    "convert_to_pdf": {
+        "Español": "Convertir a PDF",
+        "English": "Convert to PDF"
     }
 }
 
-# Función para cargar contenido de los archivos Markdown
-def cargar_contenido_markdown():
-    contenido = {}
-    for seccion, archivo in section_files.items():
-        try:
-            with open(archivo, "r", encoding="utf-8") as f:
-                contenido[seccion] = f.read()
-        except FileNotFoundError:
-            contenido[seccion] = f"Error: No se encontró el archivo {archivo}"
-    return contenido
+# Rutas y nombres de los archivos a descargar
+ruta_archivo_word_es = r"C:\Users\luisy\Laboral\CV\CV_LYCG_Español.docx"
+ruta_archivo_word_en = r"C:\Users\luisy\Laboral\CV\CV_LYCG_English.docx"
+ruta_archivo_pdf_es = r"C:\Users\luisy\Laboral\CV\CV_LYCG_Español.pdf"
+ruta_archivo_pdf_en = r"C:\Users\luisy\Laboral\CV\CV_LYCG_English.pdf"  # Ruta para el PDF en inglés
 
-# Cargar contenido de los archivos Markdown
-contenido_markdown = cargar_contenido_markdown()
+# Traducción del currículum
+@st.cache_data
+def traducir_curriculum(ruta_archivo, idioma_destino):
+    try:
+        with open(ruta_archivo, "r", encoding="windows-1252") as file:  # Especificar la codificación
+            contenido = file.read()
 
-# Diccionario para mapear nombres de idiomas a códigos
-language_codes = {
-    "Español": "es",
-    "English": "en",
-    "Français": "fr",
-    "Português": "pt",
-    "Deutsch": "de"
-}
+        prompt = f"""
+        Traduce el siguiente currículum al {idioma_destino}.
+        Importante:
+        - NO incluyas marcadores de código como ``` o markdown
+        - Mantén los emojis (📞, 🎯, 💫, etc.)
+        - Preserva los enlaces y URLs tal cual
+        - Mantén el formato de listas con - o *
+        - Conserva los títulos con # y ##
+        - No modifiques fechas ni números
+        - Mantén los nombres propios sin cambios
+        - Conserva el formato original del currículum
+
+        Currículum a traducir:
+        {contenido}
+        """
+
+        model = genai.GenerativeModel("gemini-2.0-flash")  # or the model you confirmed is available
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        st.error(f"Error al traducir el currículum: {e}")
+        return None
+
+# Función para traducir el contenido de un documento Word
+def traducir_documento_word(ruta_archivo, idioma_destino):
+    try:
+        doc = Document(ruta_archivo)
+        for paragraph in doc.paragraphs:
+            if paragraph.text:
+                translated_text = traducir_texto(paragraph.text, idioma_destino)
+                paragraph.text = translated_text
+        return doc
+    except Exception as e:
+        st.error(f"Error al traducir el documento Word: {e}")
+        return None
 
 # Botones para descargar el currículum en Word y PDF
 st.markdown(f"## {download_texts['download_section'][idioma]}")
 
-# Generar y descargar el archivo Word
-if st.button(download_texts["generate_word"][idioma]):
-    try:
-        # Convertir el idioma seleccionado al código esperado
-        language_code = language_codes.get(idioma, "en")  # Por defecto, inglés
+# Rutas de archivo Word según el idioma
+ruta_archivo_word = ruta_archivo_word_es if idioma == "Español" else ruta_archivo_word_en
 
-        # Generar el archivo Word usando contenido de Markdown
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file:
-            filename_word = generate_cv(contenido_markdown, language=language_code, output_format="docx", output_path=tmp_file.name)
-            st.success(download_texts["generate_word"][idioma])
-            with open(filename_word, "rb") as file:
-                st.download_button(
-                    label="📥 Descargar Word",
-                    data=file,
-                    file_name="curriculum_LYCG.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                )
-    except Exception as e:
-        st.error(f"{download_texts['word_error'][idioma]}: {str(e)}")
+# Descargar el archivo Word
+if os.path.exists(ruta_archivo_word):
+    # Use a unique key for each download button
+    st.download_button(
+        label=download_texts['download_word'][idioma],
+        data=open(ruta_archivo_word, "rb").read(),
+        file_name=os.path.basename(ruta_archivo_word),
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        key=f"word_download_{idioma}"  # Unique key
+    )
+else:
+    st.error(f"No se encontró el archivo Word en la ruta: {ruta_archivo_word}")
 
-# Generar y descargar el archivo PDF
-if st.button(download_texts["generate_pdf"][idioma]):
-    try:
-        # Convertir el idioma seleccionado al código esperado
-        language_code = language_codes.get(idioma, "en")  # Por defecto, inglés
+# Descargar archivos en inglés
+if idioma == "English":
+    # Add download PDF button
+    if os.path.exists(ruta_archivo_pdf_en):
+        st.download_button(
+            label=download_texts['download_pdf'][idioma],
+            data=open(ruta_archivo_pdf_en, 'rb').read(),
+            file_name="CV_LYCG_English.pdf",
+            mime="application/pdf",
+            key="pdf_download_english"
+        )
+    else:
+        st.error(f"No se encontró el archivo PDF en la ruta: {ruta_archivo_pdf_en}")
 
-        # Generar el archivo PDF usando contenido de Markdown
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-            filename_pdf = generate_cv(contenido_markdown, language=language_code, output_format="pdf", output_path=tmp_file.name)
-            st.success(download_texts["generate_pdf"][idioma])
-            with open(filename_pdf, "rb") as file:
-                st.download_button(
-                    label="📥 Descargar PDF",
-                    data=file,
-                    file_name="curriculum_LYCG.pdf",
-                    mime="application/pdf"
-                )
-    except Exception as e:
-        st.error(f"{download_texts['pdf_error'][idioma]}: {str(e)}")
+# Descargar el archivo PDF en español
+if idioma == "Español":
+    if os.path.exists(ruta_archivo_pdf_es):
+        st.download_button(
+            label=download_texts['download_pdf'][idioma],
+            data=open(ruta_archivo_pdf_es, 'rb').read(),
+            file_name=f"curriculum_LYCG_Español.pdf",
+            mime="application/pdf",
+            key="pdf_download_spanish"  # Unique key
+        )
+    else:
+        st.error(f"No se encontró el archivo PDF en la ruta: {ruta_archivo_pdf_es}")

@@ -66,7 +66,7 @@ def extraer_experiencia_linkedin(linkedin_url):
         return f"Error al procesar datos de LinkedIn: {e}"
 
 # Función para generar el CV
-def generate_cv(data, output_path="CV_Output.docx"):
+def generate_cv(data):
     """
     Genera un CV en formato Word basado en los datos proporcionados.
     """
@@ -126,9 +126,38 @@ def generate_cv(data, output_path="CV_Output.docx"):
     if "Idiomas" in data:
         add_paragraph(data["Idiomas"])
 
-    # Guardar el documento
-    doc.save(output_path)
-    return output_path
+    return doc
+
+# Función para convertir a PDF
+def convert_to_pdf(docx_path):
+    """
+    Convierte un documento de Word a PDF.
+    """
+    try:
+        pdf_path = os.path.splitext(docx_path)[0] + ".pdf"
+        convert(docx_path, pdf_path)
+        return pdf_path
+    except Exception as e:
+        st.error(f"Error al convertir a PDF: {e}")
+        return None
+
+# Función para descargar un archivo
+def descargar_archivo(ruta_archivo, nombre_archivo, mime_type):
+    """
+    Ofrece la descarga de un archivo existente.
+    """
+    try:
+        with open(ruta_archivo, "rb") as file:
+            st.download_button(
+                label=f"Descargar {nombre_archivo}",
+                data=file,
+                file_name=nombre_archivo,
+                mime=mime_type,
+            )
+    except FileNotFoundError:
+        st.error(f"Error: No se encontró el archivo en la ruta {ruta_archivo}")
+    except Exception as e:
+        st.error(f"Error al ofrecer la descarga: {e}")
 
 # Diccionario para los archivos Markdown
 section_files = {
@@ -160,22 +189,20 @@ def main():
         if not GOOGLE_API_KEY:
             st.error("La clave de API de Gemini no está configurada. No se puede generar el CV.")
         else:
-            output_path = generate_cv(data)
-            st.success(f"CV generado exitosamente en: {output_path}")
+            doc = generate_cv(data)
+
+            # Ofrecer descarga en Word
+            try:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file:
+                    doc.save(tmp_file.name)
+                    descargar_archivo(tmp_file.name, "CV_Luis_Yael_Carmona.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            except Exception as e:
+                st.error(f"Error al generar Word: {e}")
 
             # Convertir a PDF y ofrecer descarga
-            try:
-                pdf_path = "CV_Output.pdf"
-                convert(output_path, pdf_path)
-                with open(pdf_path, "rb") as file:
-                    st.download_button(
-                        label="Descargar CV en PDF",
-                        data=file,
-                        file_name="CV_Luis_Yael_Carmona.pdf",
-                        mime="application/pdf",
-                    )
-            except Exception as e:
-                st.error(f"Error al convertir a PDF: {e}")
+            pdf_path = convert_to_pdf(tmp_file.name)
+            if pdf_path:
+                descargar_archivo(pdf_path, "CV_Luis_Yael_Carmona.pdf", "application/pdf")
 
 if __name__ == "__main__":
     main()
