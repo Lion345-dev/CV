@@ -40,13 +40,18 @@ def calcular_edad(anio_nacimiento):
 edad = calcular_edad(anio_nacimiento)
 
 # Configuración de la API de Gemini con manejo de errores
-GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+try:
+    GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+except Exception as e:
+    st.error("Please set up the GOOGLE_API_KEY in your Streamlit secrets")
+    GOOGLE_API_KEY = None
 
 @st.cache_resource
 def configure_genai():
     try:
         if not GOOGLE_API_KEY:
-            raise ValueError("API key not found in secrets")
+            st.error("API key not found. Please check your Streamlit secrets configuration.")
+            return False
 
         genai.configure(api_key=GOOGLE_API_KEY)
         return True
@@ -59,9 +64,9 @@ def configure_genai():
 # Función para traducir texto con manejo de errores y caché
 @st.cache_data
 def traducir_texto(texto, idioma_destino):
-    st.write("Translating...")  # Add this line to check if the function is called
     try:
         if not configure_genai():
+            st.error("No se pudo configurar la API. El texto no será traducido.")
             return texto
 
         prompt = f"""
@@ -81,16 +86,19 @@ def traducir_texto(texto, idioma_destino):
         """
 
         try:
-            model = genai.GenerativeModel("gemini-2.0-flash")  # or a model from the list
+            model = genai.GenerativeModel("gemini-2.0-flash")
             response = model.generate_content(prompt)
+            if not response.text:
+                st.warning("La traducción está vacía. Mostrando texto original.")
+                return texto
             return response.text
         except Exception as e:
-            st.error(f"Error generating content: {e}. Model may not be available.")
-            return ""
+            st.error(f"Error en la traducción: {e}")
+            return texto
 
     except Exception as e:
-        st.error(f"Error in traducir_texto: {e}")
-        return ""
+        st.error(f"Error general: {e}")
+        return texto
 
 # Navigation bar
 # Diccionario para traducir los textos de la barra lateral
