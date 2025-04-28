@@ -63,11 +63,10 @@ Como profesional dinámico y versátil con doble formación en Administración y
 
 ### Referencias Académicas
 
-- **Lic. Gavid Abascal Castro**
+- **Lic. David Abascal Castro**
 
   - Director de la Carrera de Administración y Dirección de Empresas Familiares- Universidad Panamericana
   - [dabascal@up.edu.mx](mailto:dabascal@up.edu.mx)
-
 - **Lic. Luis Estrada Franco**
 
   - Coordinador de la Carrera de Administración y Dirección de Finanzas- Universidad Panamericana
