@@ -13,3 +13,4 @@
 ## Cursos y Certificaciones Adicionales
 
 - Excel Avanzado para Finanzas
+- Fintech y Data Science (por el Instituto de Estudios Bursátiles de España)
